@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "roth-bot"
-version = "0.1.0"
+version = "0.2.0"
 description = "Research and estimation bot for Fidelity Roth IRA buy/sell decisions"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -99,6 +99,23 @@ examples/
   sample_watchlist_report.md
 ```
 
+## v0.2: what came from Trading-ZettleKasten
+
+This version applies an influence pass from the public vault [NaitikJoshiPro/Trading-ZettleKasten](https://github.com/NaitikJoshiPro/Trading-ZettleKasten), an Obsidian trading knowledge base. A full review with per-item verdicts sits in the project notes. The vault is written for leveraged intraday trading, so most of it was deliberately skipped. What transferred:
+
+Adopted:
+- Decision journal (`journal.py`, `data/decisions.csv`). Every report run logs date, ticker, signal, score, price, and suggested size. Record what you did with `python -m roth_bot.cli journal --ticker VTI --action bought --reason "drift was low"`. Actions are bought, sold, held, ignored.
+- Track record section in the briefing. Past calls are scored against current prices by signal bucket, with hit rate and average forward return, plus process adherence reported separately from outcomes.
+- Bear case line on every ticker, built from the weakest sub-score, valuation gap, and extremes. It answers the vault prompt: what would change this signal.
+- Sector concentration check in the portfolio output. Correlated holdings multiply the same risk.
+- Volatility-scaled position sizing. Higher volatility, smaller suggested add.
+- Earnings flag within 14 days on single-stock tickets. The score does not price gap risk.
+- RSI context guard. An overbought RSI inside a confirmed uptrend no longer takes the full momentum penalty, because RSI can stay extreme in strong trends.
+- Plan restatement at the top of every briefing, and a stress loss estimate on each suggested add.
+- EV/EBITDA added to the multiples snapshot.
+
+Skipped on purpose: stop-loss and take-profit ladders, per-trade pip sizing, Kelly sizing, macro event risk halving, ICT and order-flow concepts, and sentiment as a score input. Each is day-trading machinery, unavailable inside a Roth IRA, or contradicted by long-horizon design.
+
 ## Roadmap
 
 - [ ] SEC EDGAR earnings call / 10-K parser

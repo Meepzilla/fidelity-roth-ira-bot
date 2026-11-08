@@ -27,6 +27,9 @@ risk:
   rebalance_band_points: 5.0  # flag drift > 5 percentage points
   max_portfolio_volatility: 0.20
   stop_loss_review_pct: -0.20 # review any position down 20% from cost
+  target_volatility: 0.20     # position sizing scales down past this volatility (v0.2)
+  sector_concentration_pct: 40.0 # flag any one sector past this share of holdings (v0.2)
+  earnings_window_days: 14    # flag single stocks reporting within this window (v0.2)
 
 scoring:
   buy_threshold: 70
