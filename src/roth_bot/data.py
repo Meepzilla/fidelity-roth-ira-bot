@@ -17,6 +17,34 @@ def get_info(ticker: str) -> dict:
     except Exception:
         return {}
 
+def get_next_earnings(ticker: str):
+    """Next earnings date as a date, or None. Index ETFs normally return None, which is the intended filter."""
+    import datetime as _dt
+    try:
+        import yfinance as yf
+        cal = yf.Ticker(ticker).calendar
+        dates = []
+        if isinstance(cal, dict):
+            raw = cal.get("Earnings Date") or []
+            dates = list(raw) if isinstance(raw, (list, tuple)) else [raw]
+        elif cal is not None and hasattr(cal, "loc"):
+            try:
+                dates = list(cal.loc["Earnings Date"].values)
+            except Exception:
+                dates = []
+        for d in dates:
+            if d is None:
+                continue
+            if hasattr(d, "date"):
+                return d.date()
+            try:
+                return _dt.date.fromisoformat(str(d)[:10])
+            except ValueError:
+                continue
+    except Exception:
+        return None
+    return None
+
 def get_price(ticker: str, info: dict | None = None) -> float | None:
     info = info if info is not None else get_info(ticker)
     for key in ("currentPrice", "regularMarketPrice", "previousClose"):

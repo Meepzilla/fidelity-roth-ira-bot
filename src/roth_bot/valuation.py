@@ -43,6 +43,7 @@ def multiples_snapshot(info: dict, price: float | None = None) -> dict:
         "price_to_book": info.get("priceToBook"),
         "price_to_sales": info.get("priceToSalesTrailing12Months"),
         "peg": info.get("pegRatio"),
+        "ev_to_ebitda": info.get("enterpriseToEbitda"),
         "dividend_yield": info.get("dividendYield"),
         "eps_trailing": info.get("trailingEps"),
         "book_value": info.get("bookValue"),

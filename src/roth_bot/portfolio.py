@@ -69,6 +69,29 @@ def contribution_status(limit: float, contributed: float) -> dict:
     pct = contributed / limit if limit else 0
     return {"limit": limit, "contributed": contributed, "remaining": remaining, "pct_used": round(pct * 100, 1), "warning": pct >= 0.9, "maxed": remaining == 0}
 
+def sector_concentration(df: pd.DataFrame, sectors: dict[str, str], threshold_pct: float = 40.0) -> list[dict]:
+    """Aggregate equity exposure by sector. Source rule (Trading-ZettleKasten Risk
+    Management.md): correlated holdings multiply the same risk, 3 tech stocks equals triple tech risk."""
+    if df.empty:
+        return []
+    total = float(df["market_value"].sum())
+    if total <= 0:
+        return []
+    by_sector: dict[str, float] = {}
+    for row in df.itertuples():
+        sec = sectors.get(row.symbol, "Unknown")
+        by_sector[sec] = by_sector.get(sec, 0.0) + float(row.market_value)
+    out = []
+    for sec, val in sorted(by_sector.items(), key=lambda kv: -kv[1]):
+        pct = val / total * 100
+        out.append({"sector": sec, "value": round(val, 2), "pct": round(pct, 1), "flag": sec != "Unknown" and pct > threshold_pct})
+    return out
+
+def recovery_pct(max_drawdown: float) -> float:
+    """Gain needed to recover from a drawdown. A 25% drawdown needs a 33.3% gain."""
+    dd = abs(max_drawdown)
+    return round(dd / (1 - dd) * 100, 1) if dd < 1 else 0.0
+
 def suggest_rebalance(drift: list[dict], total_value: float) -> list[str]:
     tickets = []
     for r in drift:

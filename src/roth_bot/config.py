@@ -6,7 +6,7 @@ DEFAULTS = {
     "account": {"broker": "Fidelity", "type": "Roth IRA", "contribution_limit_2026": 7500, "contributed_ytd": 0, "cash_balance": 0},
     "watchlist": ["VTI", "VXUS", "BND"],
     "target_allocation": {"VTI": 0.60, "VXUS": 0.25, "BND": 0.10, "CASH": 0.05},
-    "risk": {"max_single_position": 0.20, "rebalance_band_points": 5.0, "max_portfolio_volatility": 0.20, "stop_loss_review_pct": -0.20},
+    "risk": {"max_single_position": 0.20, "rebalance_band_points": 5.0, "max_portfolio_volatility": 0.20, "stop_loss_review_pct": -0.20, "target_volatility": 0.20, "sector_concentration_pct": 40.0, "earnings_window_days": 14},
     "scoring": {"buy_threshold": 70, "hold_threshold": 45, "weights": {"value": 0.25, "quality": 0.25, "momentum": 0.20, "risk": 0.15, "income": 0.15}},
     "valuation": {"dcf": {"discount_rate": 0.09, "terminal_growth": 0.03, "projection_years": 5}, "margin_of_safety_required": 0.15},
     "forecast": {"years": 27, "expected_return": 0.08, "volatility": 0.16, "simulations": 5000},

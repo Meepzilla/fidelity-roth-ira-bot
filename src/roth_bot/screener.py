@@ -32,7 +32,16 @@ def score_momentum(tech: dict) -> float:
     score += 6 if tech.get("above_sma50") else -6
     score += 8 if tech.get("golden_cross") else -4
     r = tech.get("rsi14", 50)
-    score += 6 if 45 <= r <= 65 else (-10 if r > 75 else (-6 if r < 30 else 0))
+    # Context guard (Trading-ZettleKasten Indicators.md): RSI can stay overbought in a strong
+    # trend, and indicators confirm rather than predict. In a confirmed uptrend the overbought
+    # penalty is capped instead of treated as a sell trigger.
+    uptrend = bool(tech.get("above_sma200") and tech.get("golden_cross"))
+    if 45 <= r <= 65:
+        score += 6
+    elif r > 75:
+        score += -3 if uptrend else -10
+    elif r < 30:
+        score += -6
     score += _clamp(tech.get("return_6m", 0) * 60, -12, 12)
     return round(_clamp(score), 1)
 
@@ -73,11 +82,39 @@ def signal_for(total: float, cfg: dict, valuation: dict, tech: dict) -> tuple[st
         sig = "HOLD"; reasons.append("Score says BUY but price is above intrinsic estimate, held to HOLD")
     return sig, reasons
 
-def position_size(total_score: float, portfolio_value: float, cash: float, max_single: float = 0.20, current_value: float = 0.0) -> float:
-    """Conservative sizing: score scales a base 5% position, never exceeds max_single or available cash."""
+def position_size(total_score: float, portfolio_value: float, cash: float, max_single: float = 0.20, current_value: float = 0.0, volatility: float | None = None, target_volatility: float = 0.20) -> float:
+    """Score scales a base position. Volatility scales it down (Trading-ZettleKasten Position
+    Sizing.md: higher volatility, smaller size). Full size at or below target volatility,
+    shrinking past it with a floor so volatile names are reduced, not banned."""
     if total_score < 45 or portfolio_value <= 0:
         return 0.0
     base_pct = 0.05 + max(0, (total_score - 45)) / 55 * 0.10  # 5% to 15%
-    target_value = min(portfolio_value * base_pct, portfolio_value * max_single)
+    vol_factor = 1.0
+    if volatility and volatility > target_volatility:
+        vol_factor = max(0.35, target_volatility / volatility)
+    target_value = min(portfolio_value * base_pct * vol_factor, portfolio_value * max_single)
     add = max(0.0, target_value - current_value)
     return round(min(add, cash), 2)
+
+def bear_case(valuation: dict, fund: dict, tech: dict, scored: dict) -> str:
+    """One generated counter-thesis line. Built to answer the Biases.md prompt:
+    what evidence would make me change my mind about this trade."""
+    parts = scored.get("parts", {})
+    weakest = min(parts, key=parts.get) if parts else "value"
+    bits = [f"weakest score is {weakest} at {parts.get(weakest)}"]
+    mos = valuation.get("margin_of_safety")
+    if mos is not None and mos < 0:
+        bits.append(f"price sits {abs(mos)*100:.0f}% above the blended intrinsic estimate")
+    if tech.get("rsi14", 50) > 75:
+        bits.append(f"RSI {tech['rsi14']:.0f} is overbought, though RSI can stay extreme in a strong trend")
+    if tech.get("annualized_volatility", 0) > 0.30:
+        bits.append(f"volatility {tech['annualized_volatility']*100:.0f}% is high, consider a limit order instead of a market order")
+    if tech.get("max_drawdown", 0) < -0.35:
+        bits.append(f"historical max drawdown {tech['max_drawdown']*100:.0f}% shows the downside this name can deliver")
+    return "Bear case, what would change this signal: " + "; ".join(bits) + ". Review trigger: score falls below the hold threshold, price drops 20% from here, or the thesis facts change."
+
+def stress_loss(suggested_size: float, tech: dict) -> float:
+    """Per-decision risk budget, adapted from the vault per-trade risk cap. Stress move is the
+    smaller of the historical max drawdown magnitude and a 40% cap."""
+    move = min(abs(tech.get("max_drawdown", 0)) or 0.25, 0.40)
+    return round(suggested_size * move, 2)

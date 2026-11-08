@@ -15,6 +15,18 @@ def fundamentals_snapshot(info: dict) -> dict:
         "recommendation": info.get("recommendationKey"), "num_analysts": info.get("numberOfAnalystOpinions"),
     }
 
+def earnings_flag(next_earnings, today=None, window_days: int = 14) -> str | None:
+    """Event-risk line for single stocks reporting soon. Source rule: earnings gap risk is real and
+    the score does not price it (Trading-ZettleKasten Risk Management.md, Earnings & Reports.md)."""
+    import datetime as _dt
+    if next_earnings is None:
+        return None
+    today = today or _dt.date.today()
+    delta = (next_earnings - today).days
+    if 0 <= delta <= window_days:
+        return f"Earnings on {next_earnings.isoformat()} ({delta}d away). Score does not price gap risk. Guidance matters more than the headline numbers."
+    return None
+
 def quality_flags(f: dict) -> list[str]:
     flags = []
     if f.get("roe") is not None and f["roe"] < 0:
