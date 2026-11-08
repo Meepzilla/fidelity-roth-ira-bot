@@ -48,6 +48,49 @@ def test_fidelity_csv_and_drift(tmp_path):
     cs = contribution_status(7500, 7500)
     assert cs["maxed"] and cs["remaining"] == 0
 
+def test_v02_journal_and_evaluation(tmp_path):
+    from roth_bot.journal import log_signal, load_journal, record_action, evaluate, process_adherence
+    p = tmp_path / "decisions.csv"
+    log_signal(p, "VTI", "BUY", 72.0, 100.0, 2500.0, today="2026-11-01")
+    log_signal(p, "XYZ", "SELL", 20.0, 50.0, 0.0, today="2026-11-01")
+    rows = load_journal(p)
+    assert len(rows) == 2
+    assert record_action(p, "VTI", "bought", "drift was low")
+    rows = load_journal(p)
+    buckets = evaluate(rows, {"VTI": 110.0, "XYZ": 40.0})
+    assert buckets["BUY"]["hit_rate"] == 1.0 and buckets["SELL"]["hit_rate"] == 1.0
+    assert buckets["BUY"]["avg_forward_return"] == 0.1
+    adh = process_adherence(rows)
+    assert adh["logged"] == 2 and adh["action_recorded_pct"] == 50.0
+
+def test_v02_vol_scaled_sizing_and_rsi_guard():
+    from roth_bot.screener import score_momentum
+    calm = position_size(85, 50000, 100000, volatility=0.10)
+    wild = position_size(85, 50000, 100000, volatility=0.60)
+    assert 0 < wild < calm
+    up = {"above_sma200": True, "above_sma50": True, "golden_cross": True, "rsi14": 82, "return_6m": 0.10}
+    down = {"above_sma200": False, "above_sma50": False, "golden_cross": False, "rsi14": 82, "return_6m": 0.10}
+    assert score_momentum(up) > score_momentum(down) + 20
+
+def test_v02_bear_case_concentration_recovery_earnings():
+    from roth_bot.screener import bear_case, stress_loss
+    from roth_bot.portfolio import sector_concentration, recovery_pct
+    from roth_bot.research import earnings_flag
+    import datetime as dt
+    val = {"margin_of_safety": -0.10}
+    tech = {"rsi14": 55, "annualized_volatility": 0.18, "max_drawdown": -0.20}
+    scored = {"parts": {"value": 30, "quality": 60, "momentum": 55, "risk": 50, "income": 45}, "total": 48}
+    text = bear_case(val, {}, tech, scored)
+    assert "weakest score is value" in text and "above the blended intrinsic" in text
+    assert stress_loss(1000, tech) == 200.0
+    df = pd.DataFrame([{"symbol": "AAPL", "quantity": 1, "last_price": 1, "market_value": 500.0, "cost_basis": 1}, {"symbol": "MSFT", "quantity": 1, "last_price": 1, "market_value": 300.0, "cost_basis": 1}, {"symbol": "BNDX", "quantity": 1, "last_price": 1, "market_value": 200.0, "cost_basis": 1}])
+    conc = sector_concentration(df, {"AAPL": "Technology", "MSFT": "Technology", "BNDX": "Bond"}, 40.0)
+    assert conc[0]["sector"] == "Technology" and conc[0]["flag"] and conc[0]["pct"] == 80.0
+    assert recovery_pct(-0.25) == 33.3
+    assert earnings_flag(dt.date(2026, 11, 20), today=dt.date(2026, 11, 8)) is not None
+    assert earnings_flag(dt.date(2027, 2, 1), today=dt.date(2026, 11, 8)) is None
+    assert earnings_flag(None, today=dt.date(2026, 11, 8)) is None
+
 def test_scoring_and_sizing():
     val = {"margin_of_safety": 0.20}
     fund = {"roe": 0.20, "profit_margin": 0.15, "current_ratio": 1.8, "debt_to_equity": 40}
