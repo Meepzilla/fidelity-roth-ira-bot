@@ -1,0 +1,52 @@
+# Copy to config.yaml and edit. config.yaml is gitignored if you add holdings.
+account:
+  broker: Fidelity
+  type: Roth IRA
+  # Update every January. 2026 limit under age 50 is $7,500.
+  contribution_limit_2026: 7500
+  contributed_ytd: 0
+  cash_balance: 0
+
+# Tickers the bot screens every run. Replace with your actual watchlist.
+watchlist:
+  - VTI
+  - VXUS
+  - BND
+  - AAPL
+  - MSFT
+
+# Target allocation as fractions summing to 1.0. Edit to your plan.
+target_allocation:
+  VTI: 0.60
+  VXUS: 0.25
+  BND: 0.10
+  CASH: 0.05
+
+risk:
+  max_single_position: 0.20   # no single stock/ETF above 20% without a flag
+  rebalance_band_points: 5.0  # flag drift > 5 percentage points
+  max_portfolio_volatility: 0.20
+  stop_loss_review_pct: -0.20 # review any position down 20% from cost
+
+scoring:
+  buy_threshold: 70
+  hold_threshold: 45
+  weights:
+    value: 0.25
+    quality: 0.25
+    momentum: 0.20
+    risk: 0.15
+    income: 0.15
+
+valuation:
+  dcf:
+    discount_rate: 0.09
+    terminal_growth: 0.03
+    projection_years: 5
+  margin_of_safety_required: 0.15
+
+forecast:
+  years: 27
+  expected_return: 0.08
+  volatility: 0.16
+  simulations: 5000
