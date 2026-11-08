@@ -1,0 +1,16 @@
+name: Weekly briefing (manual only, no trading)
+on:
+  workflow_dispatch:
+  # Uncomment to run Mondays 13:00 UTC. It only uploads a report artifact.
+  # schedule: [{ cron: "0 13 * * 1" }]
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e .
+      - run: cp config.example.yaml config.yaml && python -m roth_bot.cli report || true
+      - uses: actions/upload-artifact@v4
+        with: { name: briefing, path: reports/ }
